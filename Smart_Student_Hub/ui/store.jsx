@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { seed } from "./seed.js";
 
+const key = "studenthub.workspace.v1";
 const endpoint = "/api/workspace";
+function readDevice() {
+  const saved = localStorage.getItem(key);
+  return saved ? JSON.parse(saved) : { state: null, revision: 0 };
+}
 async function readServer() {
   const response = await fetch(endpoint, {
     cache: "no-store",
     credentials: "same-origin",
   });
-  if (response.status === 401) {
-    window.location.assign("/accounts");
-    throw Error("Sign in to open your workspace.");
-  }
+  if (response.status === 401) return { mode: "device", ...readDevice() };
   if (!response.ok)
     throw Error(
       "Your workspace could not be loaded. Check your connection and try again.",
@@ -18,6 +20,12 @@ async function readServer() {
   return { mode: "server", ...(await response.json()) };
 }
 async function write(snapshot, state) {
+  if (snapshot.mode === "device") {
+    if (readDevice().revision !== snapshot.revision) return null;
+    const next = { revision: snapshot.revision + 1, state };
+    localStorage.setItem(key, JSON.stringify(next));
+    return { ...next, mode: "device" };
+  }
   const response = await fetch(endpoint, {
     method: "PUT",
     credentials: "same-origin",
@@ -66,9 +74,14 @@ export function useWorkspace() {
     function onFocus() {
       if (document.visibilityState === "visible") reload();
     }
+    function onStorage(e) {
+      if (e.key === key) reload();
+    }
     document.addEventListener("visibilitychange", onFocus);
+    window.addEventListener("storage", onStorage);
     return () => {
       document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("storage", onStorage);
     };
   }, [reload]);
   const mutate = useCallback(
