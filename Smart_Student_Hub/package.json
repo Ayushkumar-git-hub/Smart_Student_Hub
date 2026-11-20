@@ -1,0 +1,18 @@
+{
+  "name": "smart-student-hub",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "esbuild local/client.jsx --bundle --minify --target=es2022 --outfile=www/app.js",
+    "test": "node --test tests/core.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.0"
+  },
+  "dependencies": {
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "lucide-react": "1.31.0"
+  }
+}
