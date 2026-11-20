@@ -1,21 +1,32 @@
 # Smart Student Hub
 
-A working academic planner for one student. Manage assignments, classes, exams, campus events, announcements and measurable personal goals from one dashboard.
+A working academic planner for students. Manage assignments, classes, exams, campus events, announcements and measurable personal goals from separate, private workspaces.
 
-## Run the project
+## Run the project locally
 
-1. Extract the entire ZIP.
-2. Open Terminal in the extracted folder that contains run.py.
-3. Run the following command with Python 3.
+1. Open Terminal in the folder that contains `run.py`.
+2. Generate a one-time administrator setup key and start the app:
 
-~~~bash
+```bash
+export HUB_SETUP_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
 python3 run.py
-~~~
+```
 
-4. Open http://127.0.0.1:8000 in your browser. Keep Terminal open while using the project. On Windows, the command is "py run.py". If port 8000 is occupied, run "python3 run.py --port 8001" and open the address printed in Terminal.
-5. Press Ctrl+C in Terminal to stop the server. The next launch restores your workspace.
+3. Open http://127.0.0.1:8000/accounts and create the first administrator using that key.
+4. Anyone can create an account from the sign-in page. Workspaces are private per account. The administrator can optionally generate single-use invites that expire after seven days.
+5. Press Ctrl+C in Terminal to stop the server. On Windows, use `py run.py`. If port 8000 is occupied, run `python3 run.py --port 8001`.
 
-Python’s standard library runs the server and database. The ready-to-use frontend, font and artwork are included. The first launch creates an editable sample semester with dates relative to that day. The profile button at the bottom of the sidebar changes your name, programme, semester and default reminder.
+Python’s standard library runs the server and database. The ready-to-use frontend, font and artwork are included. Each new account starts with an editable sample semester with dates relative to that day. The profile button at the bottom of the sidebar changes your name, programme, semester and default reminder.
+
+## Host on Railway
+
+1. Create a Railway project from this GitHub repository and set the service's **Root Directory** to `/Smart_Student_Hub`.
+2. Add a Railway volume mounted at `/data`.
+3. Set `HUB_DATA_DIR` to `/data` and set `HUB_SETUP_KEY` to a new, long random value in Railway's service variables. Do not commit the setup key or share it with invitees.
+4. Generate a Railway domain under the service's public networking settings, then open `https://YOUR-DOMAIN/accounts` and create the first administrator.
+5. Anyone can sign up at `/accounts`. The administrator can optionally generate single-use invitations. Each account's data is stored separately in the SQLite database on the volume.
+
+The server reads Railway's `PORT` variable and serves HTTPS behind Railway's proxy. The volume is required: without it, accounts and workspaces are lost when the service is redeployed. The app does not currently have password recovery; keep administrator access secure.
 
 ## Try a three-minute demo
 
@@ -39,7 +50,7 @@ To receive alerts while the hub is closed, use **Export to calendar** on an item
 | Multinomial Naive Bayes | Trains on 36 labelled academic examples to estimate High, Medium or Low priority from an assignment’s title and notes. Manually labelled assignments you create or edit become additional training examples. Unknown vocabulary defaults to Medium. Training and prediction run in your browser. |
 | Binary max-heap | The pending task queue combines time to deadline and priority. Overdue tasks receive urgency above upcoming tasks of the same priority. Insertion and removal take O(log n). |
 | Hash maps and sets | Maps group planner entries by local date and count tokens per priority class. Sets track vocabulary and delivered reminders. |
-| SQLite | Stores a revisioned workspace on disk. Each save checks the current revision and the client reapplies an edit after a concurrent change in another tab. |
+| SQLite | Stores accounts, one-use invites, sessions and a separate revisioned workspace per student. Each save checks the current revision and the client reapplies an edit after a concurrent change in another tab. |
 
 All campus data in the initial semester are examples. Notices and events are managed inside this personal project. It works independently of Amizone and requires no university credentials or AI API key.
 
@@ -47,7 +58,7 @@ All campus data in the initial semester are examples. Notices and events are man
 
 | File or folder | Contents |
 | --- | --- |
-| run.py | Local HTTP server, workspace API and SQLite persistence |
+| run.py | HTTP server, account registration and login, workspace API and SQLite persistence |
 | ui/Hub.jsx | Workspace navigation, reminders and calendar downloads |
 | ui/pages.jsx, ui/dashboard.jsx, ui/dialogs.jsx | Dashboard, management screens and forms |
 | ui/core.js | Priority classifier, max-heap, date index, reminders and iCalendar writer |
@@ -57,7 +68,7 @@ All campus data in the initial semester are examples. Notices and events are man
 | local/client.jsx | React browser entry point for rebuilding the frontend |
 | tests/core.test.mjs, test_storage.py | Algorithm and persistence checks |
 
-The local server accepts connections on your own computer. The database file is student_hub.sqlite3 beside run.py. A copy of this file made after closing the server preserves your workspace.
+The local server stores `student_hub.sqlite3` beside `run.py` unless `HUB_DATA_DIR` is set. Back up this database after stopping the server to preserve accounts, invitations and workspaces.
 
 ### Optional development commands
 
